@@ -111,7 +111,7 @@ step through the real app. To start a story on page load, open `http://127.0.0.1
   account change and an approval mismatch. It never blocks by itself; the gates do.
 - **Family safe word**, **family PIN** and a **48-hour wait for new payees**; only salted hashes are kept.
 
-**For judges**
+**Security testing**
 
 - **Try to scam StudyBridge**: 35 ready-made attacks in seven groups, labelled with the OWASP Top 10 for LLM
   Applications (2025): payment scams, five patterns from public reports (each links to its source), prompt injection
