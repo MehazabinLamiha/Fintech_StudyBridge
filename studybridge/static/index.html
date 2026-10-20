@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StudyBridge</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="lead">
+    <div class="brand floating">
+      <svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="15" fill="#1F6BFF"></rect>
+        <path d="M19 47 C45 47, 45 32, 32 32 C19 32, 19 17, 45 17" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"></path>
+        <circle cx="19" cy="47" r="4.5" fill="#fff"></circle><circle cx="45" cy="17" r="6" fill="#fff"></circle><circle cx="45" cy="17" r="2.4" fill="#1F6BFF"></circle>
+      </svg>
+      <div>
+        <h1>StudyBridge</h1>
+        <p>Sandbox · no real money</p>
+      </div>
+    </div>
+
+    <div class="scam-count floating" title="Scams the code stopped in this sandbox session, each counted once. Reset clears it.">
+      <span class="ic" data-icon="shield"></span><strong id="imp-scams">0</strong><span class="sc-lbl">scams stopped</span>
+    </div>
+    </div>
+
+    <nav class="toolbar floating" aria-label="Demo controls">
+      <button type="button" class="tool judge-only" id="clock-btn" popovertarget="clock-pop" title="Sandbox time: approvals and expiries follow this clock">
+        <span class="ic" data-icon="clock"></span><span id="clock">—</span>
+      </button>
+      <button type="button" class="tool judge-only" id="perm-btn" popovertarget="perm-pop" title="What the assistant is allowed to do">
+        <span class="ic" data-icon="lock"></span><span id="perm-label" class="lbl-s">Assistant can: —</span>
+      </button>
+      <button type="button" class="tool judge-only" id="llm" aria-pressed="false" title="Switch Qwen on or off. Off means rules-only mode.">
+        <span class="ic" data-icon="spark"></span><span id="llm-label" class="lbl-s">Qwen: —</span>
+      </button>
+      <button type="button" class="tool judge-only" id="glass-toggle" aria-pressed="true" title="Show or hide the Glass Box (behind the scenes)">
+        <span class="ic" data-icon="code"></span><span class="lbl-j">Glass Box</span>
+      </button>
+      <button type="button" class="tool judge-only" id="open-challenge" title="Try to trick the assistant: pick an attack or type your own">
+        <span class="ic" data-icon="lock"></span><span class="lbl-j">Try to scam it</span>
+      </button>
+      <button type="button" class="tool judge-only" id="open-stories" aria-label="Play stories" title="Play stories">
+        <span class="ic" data-icon="play"></span><span class="lbl">Play stories</span>
+      </button>
+      <button type="button" class="tool" id="judge" aria-pressed="false" title="Show the judge tools: Glass Box, stories, attacks, the bank, the sandbox clock">
+      <span class="ic" data-icon="eye"></span><span id="judge-label" class="lbl-j">Judge mode</span>
+    </button>
+    <button type="button" class="tool" id="theme" aria-pressed="false" aria-label="Dark mode" title="Switch between light and dark">
+        <span class="ic" data-icon="moon"></span><span id="theme-label" class="lbl">Dark</span>
+      </button>
+      <button type="button" class="tool judge-only" id="reset" aria-label="Reset the sandbox" title="Reset the sandbox">
+        <span class="ic" data-icon="reset"></span><span class="lbl">Reset</span>
+      </button>
+    </nav>
+  </header>
+
+  <div id="clock-pop" class="pop" popover>
+    <p class="pop-title">Move the sandbox clock forward</p>
+    <p class="pop-note">Approvals last 24 hours, allowances 72 hours. Jump ahead to see them expire.</p>
+    <div class="row">
+      <button type="button" class="btn" data-advance="1">+1 hour</button>
+      <button type="button" class="btn" data-advance="25">+25 hours</button>
+      <button type="button" class="btn" data-advance="73">+73 hours</button>
+    </div>
+  </div>
+
+  <div id="perm-pop" class="pop perm" popover>
+    <p class="pop-title">What the assistant can do</p>
+    <p class="pop-note">Like app permissions on a phone: the assistant only gets the access chosen here. Even if a message tricks it, it cannot go further.</p>
+    <div id="perm-list" class="perm-list" role="radiogroup" aria-label="Assistant permission"></div>
+  </div>
+
+  <div id="caption" class="caption floating" hidden aria-live="polite">
+    <div class="caption-main">
+      <span id="cap-story" class="cap-story"></span>
+      <span id="cap-text"></span>
+    </div>
+    <div class="caption-side">
+      <span id="cap-progress"></span>
+      <button type="button" id="cap-pause" class="btn small">Pause</button>
+      <button type="button" id="cap-stop" class="btn small">Stop</button>
+    </div>
+  </div>
+
+
+
+  <main class="stage">
+    <nav class="tabs floating" aria-label="Screens">
+      <button type="button" data-tab="student" class="active"><span data-icon="person"></span>Student <span id="tab-student-count" class="count"></span></button>
+      <button type="button" data-tab="bank" class="judge-only"><span data-icon="bank"></span>Bank</button>
+      <button type="button" data-tab="family"><span data-icon="family"></span>Family <span id="tab-family-count" class="count"></span></button>
+    </nav>
+    <!-- STUDENT PHONE: Home, Bills and Assistant tabs -->
+    <section class="sheet student" id="pane-student" aria-label="Student phone">
+      <div class="sheet-head">
+        <div class="who"><span class="avatar student-bg" data-icon="person"></span>
+          <div><strong id="owner">Student</strong><span class="where">Shenzhen · student phone</span></div>
+        </div>
+      </div>
+
+      <div class="sheet-body spane on" id="s-home" data-spane="home">
+        <div class="wallet">
+          <span class="wallet-label">Family-funded wallet</span>
+          <div id="wc-main" class="wallet-main">—</div>
+          <div id="wc-sub" class="wallet-sub"></div>
+        </div>
+        <div>
+          <h4>Ask the assistant</h4>
+          <div id="quick" class="quick"></div>
+          <div id="more-quick" class="more-quick" hidden></div>
+        </div>
+        <div class="card-flat guardian" id="home-guardian-card" data-level="none">
+          <h4>Tuition deadlines <span id="g-chip" class="g-chip"></span></h4>
+          <div id="home-guardian"></div>
+        </div>
+        <div class="card-flat">
+          <h4>Today</h4>
+          <div id="home-limits" class="limits"></div>
+        </div>
+        <div class="card-flat scam-card">
+          <h4>Got a message about paying?</h4>
+          <p class="muted small">Paste it and see which parts look like a scam. The text stays on this screen and is never sent to Qwen.</p>
+          <div class="row">
+            <button type="button" id="open-scamcheck" class="btn primary small">Check a message</button>
+            <button type="button" id="open-unicheck" class="btn small">Check a bill</button>
+          </div>
+        </div>
+        <div id="mine" class="mine" aria-label="My allowances"></div>
+      </div>
+
+      <div class="sheet-body spane" id="s-money" data-spane="money">
+        <section class="credit-card" aria-labelledby="credit-h">
+          <h4 class="sec-h" id="credit-h"><span class="chip purple" data-icon="star"></span>Credit building</h4>
+          <div class="credit-stats">
+            <div><strong id="credit-ontime">—</strong><span id="credit-ontime-label">paid on time</span></div>
+            <div><strong id="credit-score">—</strong><span id="credit-stage">readiness</span></div>
+          </div>
+          <ul id="credit-steps" class="credit-steps"></ul>
+          <div class="row-between credit-foot">
+            <span class="small">Your payment record is what a landlord, scholarship office or bank can ask for. Neither number is a credit score.</span>
+            <button type="button" id="record-save" class="btn small primary">Download record</button>
+          </div>
+        </section>
+        <div class="card-flat pot-card">
+          <div class="row-between"><h4 class="sec-h"><span class="chip teal" data-icon="jar"></span>Tuition reserve</h4><strong id="pot-val" class="pot-val">BDT 0</strong></div>
+          <p class="small muted">Your family sets this money aside for tuition. Everyday payments cannot use it.</p>
+          <div class="bar"><div id="pot-meter" class="bar-fill pot-fill"></div></div>
+          <div id="pot-goal" class="small"></div>
+          <div id="pot-fx" class="small muted"></div>
+        </div>
+        <div class="card-flat">
+          <div class="row-between"><h4 class="sec-h"><span class="chip orange" data-icon="chart"></span>This month</h4><span id="month-total" class="small muted"></span></div>
+          <div id="month-rows" class="month-rows"></div>
+          <ul id="month-tips" class="g-tips"></ul>
+        </div>
+        <div class="card-flat">
+          <h4 class="sec-h"><span class="chip blue" data-icon="bill"></span>Recent activity</h4>
+          <ul id="activity" class="activity"></ul>
+        </div>
+        <div class="card-flat">
+          <h4 class="sec-h"><span class="chip green" data-icon="swap"></span>Exchange rates</h4>
+          <div id="home-rates" class="kv"></div>
+        </div>
+      </div>
+
+      <div class="sheet-body spane" id="s-bills" data-spane="bills">
+        <div class="bills-head">
+          <p class="muted small">Bills from the payees your family saved. Anything else arrives in Messages, and the app pays only the account saved for each payee.</p>
+          <button type="button" id="open-add-bill" class="btn small primary">Add a bill</button>
+        </div>
+        <details class="card-flat fold" id="uni-card">
+          <summary><h4>University check</h4><span id="uni-chip" class="g-chip"></span></summary>
+          <ul id="uni-items" class="uni-items"></ul>
+        </details>
+
+        <div id="bills" class="bills"></div>
+      </div>
+
+      <div class="sheet-body spane" id="s-messages" data-spane="messages">
+        <div id="messages" class="messages"></div>
+        <details class="card-flat fold">
+          <summary><h4>Paid the wrong account?</h4></summary>
+          <ol class="help-steps">
+            <li>Call your bank now, on the number on your card, and ask them to recall or stop the transfer. Speed matters most.</li>
+            <li>Tell your family, and call the university finance office on the number on its own website, not one from a message.</li>
+            <li>Keep everything: the bill, the messages, the receipt and the sender's details. Do not delete the chat.</li>
+            <li>Report it to the police where you live, and in Bangladesh to the bank that sent the money.</li>
+            <li>Do not pay anyone who offers to get the money back for a fee. That is a second scam.</li>
+          </ol>
+        </details>
+
+        <div class="sandbox-box judge-only">
+          <p class="small"><strong>Sandbox control.</strong> Make a message arrive, as the university, the landlord, a shop or a scammer would send it.</p>
+          <div id="send-messages" class="row"></div>
+        </div>
+      </div>
+
+      <div class="sheet-body spane" id="student-body" data-spane="assistant">
+        <div id="thread" class="thread" aria-live="polite"></div>
+      </div>
+
+      <div id="confirms" class="confirms" aria-live="polite"></div>
+      <form id="form" class="composer" hidden>
+        <input id="msg" autocomplete="off" maxlength="1000" placeholder="Ask, e.g. pay invoice INV-0003" aria-label="Message to the assistant">
+        <button type="submit" class="send" aria-label="Send"><span data-icon="send"></span></button>
+      </form>
+      <nav class="tabbar" aria-label="Student screens">
+        <button type="button" data-stab="home" class="on"><span data-icon="home"></span>Home</button>
+        <button type="button" data-stab="bills"><span data-icon="bill"></span>Bills</button>
+        <button type="button" data-stab="money"><span data-icon="wallet"></span>Money</button>
+        <button type="button" data-stab="messages"><span data-icon="mail"></span>Messages <span id="msg-count" class="count"></span></button>
+        <button type="button" data-stab="assistant"><span data-icon="chat"></span>Assistant</button>
+      </nav>
+    </section>
+
+    <!-- GLASS BOX -->
+    <section class="glass" id="pane-glass" aria-label="Glass Box">
+      <div class="route-card floating">
+        <div class="route-top">
+          <div>
+            <h2>Glass Box <span class="for-whom">for judges and reviewers</span></h2>
+            <p class="muted">What the app did behind the scenes for the latest request. Students and families do not see this screen.</p>
+          </div>
+          <select id="case-select" aria-label="Choose a request" hidden></select>
+        </div>
+        <div id="route-map" class="route-map" aria-label="Money route"></div>
+        <div id="case-title" class="route-head"></div>
+        <div id="case-threat" class="case-threat"></div>
+        <div id="case-xray" class="case-xray"></div>
+        <button type="button" id="steps-toggle" class="btn small steps-toggle" hidden></button>
+        <ol id="pipeline" class="route"></ol>
+      </div>
+
+      <div class="details floating">
+        <div class="seg" role="tablist" aria-label="Details">
+          <button type="button" role="tab" data-detail="checks" class="on">Safety checks</button>
+          <button type="button" role="tab" data-detail="ai">What the AI saw</button>
+          <button type="button" role="tab" data-detail="limits">Limits and rates</button>
+          <button type="button" role="tab" data-detail="audit">Audit log</button>
+        </div>
+        <div class="detail-pane on" data-pane="checks"><ul id="checks" class="checks"></ul></div>
+        <div class="detail-pane" data-pane="ai"><div id="ai" class="ai"></div></div>
+        <div class="detail-pane" data-pane="limits">
+          <div id="meters" class="meters"></div>
+          <div id="rates" class="rates"></div>
+        </div>
+        <div class="detail-pane" data-pane="audit">
+          <p class="muted">Each record holds the fingerprint of the one before it, so changing any line breaks the chain. Account numbers are masked.</p>
+          <div class="row">
+            <button type="button" id="verify" class="btn">Check the chain</button>
+            <button type="button" id="tamper" class="btn danger">Tamper with a copy</button>
+          </div>
+          <div id="verify-result" class="verify-result"></div>
+          <div id="chain" class="chain"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BANK (simulated) -->
+    <section class="sheet bank" id="pane-bank" aria-label="Bank screen">
+      <div class="sheet-head">
+        <div class="who"><span class="avatar bank-bg" data-icon="bank"></span>
+          <div><strong>Sandbox Bank</strong><span class="where">Card limit and reviews · simulated</span></div>
+        </div>
+      </div>
+      <div class="sheet-body">
+        <div class="group first">
+          <div class="row-between">
+            <span>Daily card limit</span>
+            <strong id="bank-limit-val">USD 300</strong>
+          </div>
+          <form id="bank-limit-form" class="amount-form">
+            <label class="amount-field"><span>USD</span>
+              <input id="bank-limit" type="number" step="1" inputmode="numeric" required aria-label="Daily card limit in USD"></label>
+            <button type="submit" class="btn small primary">Save limit</button>
+          </form>
+          <p id="bank-limit-note" class="small muted"></p>
+          <div class="bar"><div id="bank-meter" class="bar-fill bank-fill"></div></div>
+          <div id="bank-spent" class="small muted"></div>
+        </div>
+        <div class="group">
+          <h4>Bank reviews</h4>
+          <p class="small muted">A shop quote or rent bill that would take the card past today's limit is reviewed first: is it a real quote or bill, does it say what it is for, is it still valid.</p>
+          <ul id="bank-reviews" class="list"></ul>
+        </div>
+        <div class="group">
+          <h4>Paid through the bank</h4>
+          <ul id="bank-paid" class="list small"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAMILY PHONE -->
+    <section class="sheet family" id="pane-family" aria-label="Family phone">
+      <div class="sheet-head">
+        <div class="who"><span class="avatar family-bg" data-icon="home"></span>
+          <div><strong id="fam-name">Family</strong><span class="where" data-i18n="where">Dhaka · family sender</span></div>
+        </div>
+        <button type="button" id="lang" class="btn small" aria-label="Switch language">বাংলা</button>
+      </div>
+      <div class="fam-lock" id="fam-lock" hidden>
+        <span class="lock-ic" data-icon="lock"></span>
+        <h3 data-i18n="lockTitle">Family screen locked</h3>
+        <p class="small muted" data-i18n="lockNote">Type the family PIN to approve or change settings.</p>
+        <form id="unlock-form" class="amount-form" autocomplete="off">
+          <label class="amount-field"><span>PIN</span>
+            <input id="unlock-pin" type="password" inputmode="numeric" maxlength="8" required aria-label="Family PIN"></label>
+          <button type="submit" class="btn small primary" data-i18n="unlock">Unlock</button>
+        </form>
+        <p id="unlock-msg" class="small bad"></p>
+      </div>
+      <div class="sheet-body fpane on" data-fpane="approvals">
+        <h3 class="sec"><span data-i18n="inbox">Approval inbox</span> <span id="inbox-count" class="count"></span></h3>
+        <div id="inbox" class="inbox"></div>
+        <div class="group">
+          <h4 data-i18n="alerts">Stopped for your student</h4>
+          <ul id="alerts" class="alerts"></ul>
+          <details id="alerts-seen-box" class="seen-box" hidden>
+            <summary><span data-i18n="alertsSeen">Seen earlier</span> <span id="alerts-seen-count"></span></summary>
+            <ul id="alerts-seen" class="list small"></ul>
+          </details>
+        </div>
+        <p class="small muted" data-i18n="note">Only this screen can approve. The assistant and the student cannot.</p>
+      </div>
+
+      <div class="sheet-body fpane" data-fpane="bills">
+        <div class="card-flat">
+          <div class="row-between"><h4 data-i18n="famMonth">Your student this month</h4><span id="fam-month-total" class="small muted"></span></div>
+          <div id="fam-month-rows" class="month-rows"></div>
+        </div>
+        <div class="card-flat pot-card">
+          <div class="row-between"><h4 data-i18n="pot">Tuition reserve</h4><strong id="fam-pot-val" class="pot-val">BDT 0</strong></div>
+          <p class="small muted" data-i18n="potNote">Only tuition can use this money. Your student sees it but cannot spend it.</p>
+          <div class="bar"><div id="fam-pot-meter" class="bar-fill pot-fill"></div></div>
+          <div id="fam-pot-tip" class="small"></div>
+          <div id="fam-pot-fx" class="small muted"></div>
+          <form id="pot-add-form" class="amount-form">
+            <label class="amount-field"><span>BDT</span>
+              <input id="pot-add" type="number" step="1" min="1" inputmode="numeric" required aria-label="Amount to put aside, in BDT"></label>
+            <button type="submit" class="btn small primary" data-i18n="putAside">Put aside</button>
+          </form>
+          <form id="pot-release-form" class="amount-form">
+            <label class="amount-field"><span>BDT</span>
+              <input id="pot-release" type="number" step="1" min="1" inputmode="numeric" required aria-label="Amount to take out, in BDT"></label>
+            <button type="submit" class="btn small" data-i18n="takeOut">Take out</button>
+          </form>
+        </div>
+        <p class="muted small" data-i18n="billsNote">Every bill and quote your student has received. Open one to see it as printed.</p>
+        <div id="fam-bills" class="bills"></div>
+      </div>
+
+      <div class="sheet-body fpane" data-fpane="settings">
+        <div class="group first">
+          <div class="row-between">
+            <span data-i18n="limit">Daily limit</span>
+            <strong id="limit-val">CNY 500</strong>
+          </div>
+          <form id="limit-form" class="amount-form">
+            <label class="amount-field"><span>CNY</span>
+              <input type="number" id="limit" step="1" inputmode="numeric" required aria-label="Family daily limit (CNY)"></label>
+            <button type="submit" class="btn small primary" data-i18n="saveLimit">Save limit</button>
+          </form>
+          <p id="limit-note" class="small muted"></p>
+          <div class="bar"><div id="fam-meter" class="bar-fill family-fill"></div></div>
+          <div id="fam-spent" class="small muted"></div>
+        </div>
+        <div class="group" id="pin-group">
+          <div class="row-between"><h4 data-i18n="pinTitle">Family PIN</h4><button type="button" id="pin-lock" class="btn small" hidden>Lock now</button></div>
+          <p class="small muted">Locks this screen, so whoever holds the phone cannot approve their own request. It stays unlocked for 10 minutes after each use. It is a lock, not a login.</p>
+          <div id="pin-state" class="small"></div>
+          <form id="pin-form" class="stack-form" autocomplete="off">
+            <label id="pin-current-row" hidden>Current PIN <input id="pin-current" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></label>
+            <label>New PIN <input id="pin-new" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="4 to 8 digits"></label>
+            <div class="row"><button type="submit" class="btn small primary">Save PIN</button>
+              <button type="button" id="pin-remove" class="btn small" hidden>Remove it</button></div>
+          </form>
+        </div>
+        <div class="group" id="safe-group">
+          <h4>Family safe word</h4>
+          <p class="small muted">Agree a word with your student in person or on a call you start. If anyone phones or messages asking you to approve something urgent, ask them for the word first. Approving a large payment, a changed bank account or a request with warnings then needs it. The app cannot tell who is calling, so you are the check.</p>
+          <div id="safe-state" class="small"></div>
+          <form id="safe-form" class="stack-form" autocomplete="off">
+            <label id="safe-current-row" hidden>Current safe word <input id="safe-current" type="password" maxlength="40" autocomplete="off"></label>
+            <label>New safe word <input id="safe-new" type="password" maxlength="40" autocomplete="off" placeholder="4 to 40 characters"></label>
+            <div class="row"><button type="submit" class="btn small primary">Save safe word</button>
+              <button type="button" id="safe-remove" class="btn small" hidden>Remove it</button></div>
+          </form>
+        </div>
+        <div class="group" id="payee-group">
+          <h4>Save a new payee</h4>
+          <p class="small muted">A payee you save now can be paid only after <span id="payee-hold">48</span> hours. The wait gives you time to notice a mistake or a scam.</p>
+          <form id="payee-form" class="stack-form" autocomplete="off">
+            <label>Name <input id="payee-name" maxlength="60" required placeholder="e.g. Green Flat Landlord"></label>
+            <label>Type <select id="payee-type"><option value="landlord">Landlord</option><option value="merchant">Shop</option><option value="institution">University or school</option><option value="person_or_agent">Person or agent</option></select></label>
+            <label>Account number <input id="payee-account" inputmode="numeric" maxlength="30" required placeholder="6 to 24 digits"></label>
+            <label class="check"><input id="payee-confirmed" type="checkbox"> I checked these details with the payee myself (by phone or in person), not from a message or a bill</label>
+            <button type="submit" class="btn small primary">Save payee</button>
+          </form>
+          <ul id="payee-waits" class="list small"></ul>
+        </div>
+        <div class="group">
+          <h4 data-i18n="docs">Documents</h4>
+          <ul id="docs" class="list"></ul>
+        </div>
+        <div class="group">
+          <h4 data-i18n="allowances">Open allowances</h4>
+          <ul id="allowances" class="list"></ul>
+        </div>
+        <div class="group">
+          <h4 data-i18n="history">History</h4>
+          <ul id="history" class="list small"></ul>
+        </div>
+      </div>
+      <nav class="tabbar fam-tabbar" aria-label="Family screens">
+        <button type="button" data-ftab="approvals" class="on"><span data-icon="family"></span><span data-i18n="tabApprovals">Approvals</span></button>
+        <button type="button" data-ftab="bills"><span data-icon="bill"></span><span data-i18n="tabBills">Bills</span></button>
+        <button type="button" data-ftab="settings"><span data-icon="lock"></span><span data-i18n="tabSettings">Settings</span></button>
+      </nav>
+    </section>
+  </main>
+
+  <dialog id="stories" aria-label="Test stories">
+    <div class="dlg-head">
+      <div>
+        <h2>The 31 test stories</h2>
+        <p class="muted">Each story starts from a fresh sandbox and plays through the real app, step by step.</p>
+      </div>
+      <div class="row">
+        <label class="small">Speed
+          <select id="speed"><option value="2600">Presenter</option><option value="1400" selected>Normal</option><option value="500">Fast</option></select>
+        </label>
+        <button type="button" id="tour-play" class="btn" title="Five stories in presenter mode, then the audit tamper test (about three minutes)">Judge tour</button>
+        <button type="button" id="play-all" class="btn primary">Play all</button>
+        <button type="button" id="close-stories" class="btn" aria-label="Close">Close</button>
+      </div>
+    </div>
+    <div id="story-list" class="story-list"></div>
+  </dialog>
+
+  <dialog id="scamcheck" aria-label="Scam check">
+    <div class="dlg-head">
+      <div>
+        <h2>Scam check</h2>
+        <p class="muted">Paste a message you were sent, or test yourself. Nothing here can start a payment.</p>
+      </div>
+      <button type="button" id="scamcheck-close" class="btn" aria-label="Close">Close</button>
+    </div>
+    <div class="ctabs" role="tablist">
+      <button type="button" role="tab" class="on" data-sctab="check">Check a message</button>
+      <button type="button" role="tab" data-sctab="uni">Check a bill with the university</button>
+      <button type="button" role="tab" data-sctab="quiz">Spot the scam</button>
+    </div>
+
+    <div class="ctab" data-scpane="uni" hidden>
+      <form id="uv-form" class="sc-form">
+        <label class="uv-pick">University <select id="uv-uni" aria-label="University"></select></label>
+        <textarea id="uv-text" rows="5" maxlength="4000" placeholder="Paste the bill, the invoice e-mail or the payment message" aria-label="Bill to check"></textarea>
+        <div class="row">
+          <button type="submit" class="btn primary">Check with the university</button>
+          <button type="button" id="uv-real" class="btn">Try a real bill</button>
+          <button type="button" id="uv-fake" class="btn">Try a fake bill</button>
+        </div>
+      </form>
+      <div id="uv-result" class="sc-result" aria-live="polite"></div>
+    </div>
+
+    <div class="ctab on" data-scpane="check">
+      <form id="sc-form" class="sc-form">
+        <textarea id="sc-text" rows="5" maxlength="2000" placeholder="Paste the message here (WhatsApp, WeChat, email, SMS)" aria-label="Message to check"></textarea>
+        <div class="row">
+          <button type="submit" class="btn primary">Check it</button>
+          <button type="button" id="sc-example" class="btn">Try an example</button>
+          <span class="small muted" id="sc-count">0 / 2000</span>
+        </div>
+      </form>
+      <div id="sc-result" class="sc-result" aria-live="polite"></div>
+    </div>
+
+    <div class="ctab" data-scpane="quiz" hidden>
+      <div id="quiz-box" class="quiz-box" aria-live="polite"></div>
+    </div>
+    <p class="small muted">These checks can show that something is wrong. They cannot prove a bill is genuine, so they never say "safe": confirm with the university before you pay.</p>
+  </dialog>
+
+  <dialog id="challenge" aria-label="Try to scam StudyBridge">
+    <div class="dlg-head">
+      <div>
+        <h2>Try to scam StudyBridge</h2>
+        <p class="muted">Pick an attack or type your own. It goes through the same chat as the student's, so every gate, permission and actor check applies. Attacks are labelled with the OWASP Top 10 for LLM applications.</p>
+      </div>
+      <button type="button" id="challenge-close" class="btn" aria-label="Close">Close</button>
+    </div>
+    <div class="ctabs" role="tablist">
+      <button type="button" role="tab" class="on" data-ctab="attacks">Attacks</button>
+      <button type="button" role="tab" data-ctab="lab">Invoice lab</button>
+    </div>
+    <div id="challenge-tier" class="challenge-tier" hidden></div>
+
+    <div class="ctab on" data-cpane="attacks">
+      <div class="score" id="score" role="status" aria-live="polite">
+        <div><b id="sc-attempts">0</b><span>attempts</span></div>
+        <div class="s-stop"><b id="sc-stopped">0</b><span>stopped</span></div>
+        <div class="s-wait"><b id="sc-waiting">0</b><span>waiting for the family or the student</span></div>
+        <div class="s-ans"><b id="sc-answered">0</b><span>answered like a normal request</span></div>
+        <div class="s-moved"><b id="sc-moved">0</b><span>money moved without both</span></div>
+      </div>
+      <div id="owasp-tally" class="owasp-tally"></div>
+      <div class="row report-row">
+        <button type="button" id="report-save" class="btn small" disabled>Save report (.md)</button>
+        <span class="small muted">A plain-text record of this session's attempts. Interactive results are not demo evidence.</span>
+      </div>
+      <div id="attacks" class="attack-groups"></div>
+      <form id="attack-form" class="attack-form">
+        <input id="attack-msg" autocomplete="off" maxlength="300" placeholder="Or write your own attack, in any words" aria-label="Your own attack">
+        <button type="submit" class="btn primary">Attack</button>
+      </form>
+      <ul id="attempts" class="attempts"></ul>
+    </div>
+
+    <div class="ctab" data-cpane="lab" hidden>
+      <p class="muted small">Any bill can be tested, not only the ones in the sample file. Gate 1 compares the account on the bill with the account the family saved for that payee. It does not trust the name printed on the bill. Make a bill yourself, or let the code make random ones.</p>
+      <div class="lab-grid">
+        <form id="lab-form" class="lab-form">
+          <h3>Make a bill</h3>
+          <label>Payee on the bill <select id="lab-payee"></select></label>
+          <label>Kind of bill
+            <select id="lab-kind">
+              <option value="fee">University fee</option>
+              <option value="tuition">Tuition</option>
+              <option value="bill">Rent or other bill</option>
+              <option value="quote">Shop quote</option>
+            </select>
+          </label>
+          <label>Amount <input id="lab-amount" type="number" min="1" max="1000000" step="0.01" value="350" required></label>
+          <label>Issuer name as printed <input id="lab-issuer" maxlength="80" placeholder="Leave empty to use the payee's name"></label>
+          <label>Account on the bill
+            <select id="lab-account-mode">
+              <option value="saved">The payee's saved account</option>
+              <option value="digit">The saved account with one digit changed</option>
+              <option value="other_payee">Another saved payee's account</option>
+              <option value="typed">A number I type</option>
+            </select>
+          </label>
+          <label id="lab-typed" hidden>Account number <input id="lab-account" inputmode="numeric" maxlength="30" placeholder="6 to 24 digits"></label>
+          <label>Note printed on the bill <textarea id="lab-memo" maxlength="200" rows="2" placeholder="e.g. URGENT: pay today or lose your seat"></textarea></label>
+          <label class="check"><input id="lab-claims" type="checkbox"> The bill says the bank details have changed</label>
+          <label>Due or valid until <input id="lab-date" type="date"></label>
+          <button type="submit" class="btn primary">Make this bill and try to pay it</button>
+        </form>
+        <div class="lab-side">
+          <h3>Random bills</h3>
+          <p class="small muted">The code takes a genuine bill and changes it in one known way, then sends it through the same chat. It knows the answer the plan requires, so it can compare.</p>
+          <div class="row">
+            <button type="button" id="lab-random" class="btn">Make one random bill</button>
+            <button type="button" id="lab-batch" class="btn primary">Check 100 random bills</button>
+          </div>
+          <p class="small muted">The 100-bill check runs in a separate sandbox, so nothing here changes.</p>
+          <div id="lab-result" class="lab-result" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+    <p class="small muted">Chat can only prepare a payment. It moves only when the family has approved and the student presses Confirm. Nothing here is real money.</p>
+  </dialog>
+
+  <dialog id="xray" aria-label="Invoice">
+    <div class="dlg-head">
+      <div>
+        <h2 id="xray-title">Invoice</h2>
+        <p class="muted">The bill as printed, and what the code found on it. Viewing it changes nothing.</p>
+      </div>
+      <button type="button" id="xray-close" class="btn" aria-label="Close">Close</button>
+    </div>
+    <div id="xray-body"></div>
+  </dialog>
+
+  <dialog id="raise" aria-label="Ask to raise my limit">
+    <form id="raise-form" class="raise-form">
+      <h2>Ask to raise my limit</h2>
+      <p id="raise-now" class="muted small"></p>
+      <label>Limit for that day (CNY)
+        <input id="raise-cny" type="number" step="1" required>
+      </label>
+      <label>Day
+        <input id="raise-date" type="date" required>
+      </label>
+      <label>Reason for your family
+        <textarea id="raise-note" maxlength="300" rows="3" placeholder="e.g. Friend's birthday dinner, I am paying for the cake."></textarea>
+      </label>
+      <p class="small muted">Your family sees your note exactly as you write it. It never changes a rule by itself.</p>
+      <div class="row">
+        <button type="submit" class="btn primary">Send to my family</button>
+        <button type="button" id="raise-cancel" class="btn">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="add-bill" aria-label="Add a bill">
+    <form id="add-bill-form" class="raise-form bill-form">
+      <h2>Add a bill</h2>
+      <p class="muted small">Copy it from the paper or emailed bill. When you pay it, the account on it is checked against the one your family saved, so a wrong account is caught.</p>
+      <label>Who sent it <select id="ab-payee" required></select></label>
+      <label>Kind <select id="ab-kind" required></select></label>
+      <label>Amount (CNY) <input id="ab-amount" type="number" min="0.01" max="1000000" step="0.01" required></label>
+      <label>What it is for <input id="ab-purpose" maxlength="80" placeholder="e.g. Desk lamp"></label>
+      <label><span id="ab-date-label">Due date</span> <input id="ab-date" type="date"></label>
+      <label>Account number on the bill <input id="ab-account" inputmode="numeric" maxlength="30" placeholder="6 to 24 digits" required></label>
+      <label class="check"><input id="ab-genuine" type="checkbox"> Sandbox shortcut: use the number printed on the genuine bill</label>
+      <div class="row">
+        <button type="submit" class="btn primary">Add to my bills</button>
+        <button type="button" id="ab-cancel" class="btn">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="redbanner" class="redbanner" popover="manual" role="alert">
+    <span class="rb-ic" data-icon="shield"></span>
+    <div class="rb-txt"><strong id="rb-title"></strong><span id="rb-sub"></span></div>
+    <button type="button" id="rb-close" class="btn small" aria-label="Dismiss the alert">Dismiss</button>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/i18n.js"></script>
+  <script src="/reasons_bn.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
