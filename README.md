@@ -20,7 +20,7 @@ Shenzhen: her family in Dhaka funds her in BDT, while her tuition, rent and shop
 
 ## Design principle: AI suggests, code decides, the student confirms last
 
-- The LLM (**Ollama `qwen2.5:7b`** locally, or a hosted Qwen such as Groq's; optional) only (1) reads the request into a strict form
+- The LLM (**Ollama `qwen2.5:7b`**, run locally; optional) only (1) reads the request into a strict form
   (intent, amount, currencies, payee, invoice id) and (2) writes up to three plain sentences.
 - For money actions, a rules reader must agree with the model on the intent and on every field both read
   (payee, invoice id, amount). If they disagree, nothing is prepared and the student is shown the rules
@@ -43,7 +43,7 @@ See [docs/TECHNICAL_DOCUMENTATION.md](docs/TECHNICAL_DOCUMENTATION.md) and
 Requires Python 3.10+. There are **no third-party dependencies**; only the standard library is used.
 
 ```bash
-git clone https://github.com/MehazabinLamiha/StudyBridge.git && cd StudyBridge
+git clone https://github.com/MehazabinLamiha/Fintech_StudyBridge.git && cd Fintech_StudyBridge
 python -m unittest discover -s tests -t .                      # 348 tests
 python -m studybridge --today 2026-10-13 web                    # http://127.0.0.1:8765 (payments on by default)
 python -m studybridge --today 2026-10-13 demo                   # the 31 stories -> evidence/
@@ -192,36 +192,12 @@ If Ollama is not reachable, StudyBridge logs a warning and runs rules-only. Ever
 In the web UI, the **Qwen** button in the top bar switches the model on and off without a restart; if
 Ollama is not running, switching on is refused and the app stays rules-only.
 
-### Optional: hosted Qwen (for a public demo such as Render)
-
-A server without Ollama can use a hosted OpenAI-style API instead. Groq has a free tier (read 16 Oct 2026: 30
-requests a minute, 1,000 a day, no card). Set the key as an environment variable, never in the repo or on the command line:
-
-```bash
-export GROQ_API_KEY=...                      # from console.groq.com
-python -m studybridge --llm --tier TRANSACT web          # Qwen starts on; the top-bar switch works too
-```
-
-- With only the key set, the client uses `https://api.groq.com/openai/v1` and the model in `config.HOSTED_LLM`
-  (`qwen/qwen3.8-27b`). Check the exact model id in your Groq console; if it is not listed, the switch is refused and
-  the screen says so. Use `--model` or `STUDYBRIDGE_LLM_MODEL` to change it, and `--llm-url` or
-  `STUDYBRIDGE_LLM_URL` for another provider (OpenRouter, Together, Ollama's `/v1`); the key is read from
-  `STUDYBRIDGE_LLM_KEY` or `GROQ_API_KEY`.
-- A local budget (`STUDYBRIDGE_LLM_PER_MINUTE`, default 20; `STUDYBRIDGE_LLM_PER_DAY`, default 800) stops calls before the
-  free quota does. When it is used up, or the service fails, the app runs rules-only for that message.
-- What leaves the server: everything Qwen already sees, which is the student's own chat message plus the
-  structured fields of the result (never invoice notes or memos, never pasted scam-check text). With the hosted option
-  on, the "Qwen runs locally" claim no longer holds; say so on any slide that uses it. Everything is fictional sandbox data. The hosted model is a different Qwen from the evidence run's
-  `qwen2.5:7b`: say which one a screenshot came from.
-- On Render: set `GROQ_API_KEY` (and optionally `STUDYBRIDGE_LLM=1` to start with Qwen on) under Environment, and
-  redeploy. `PORT` is read automatically.
-
 ### Options
 
 | Flag | Meaning |
 |---|---|
 | `--tier PUBLIC\|READ\|ADVISE\|TRANSACT` | Permission tier granted to the session (default `TRANSACT` for `web`, where the student still confirms every payment; `ADVISE`, which cannot move money, for the other commands) |
-| `--llm` / `--model` / `--llm-url` | Use a model for intent parsing and explanations: Ollama, or a hosted API when a key or URL is set (`STUDYBRIDGE_LLM=1` is the same as `--llm`) |
+| `--llm` / `--model` / `--llm-url` | Use Qwen through local Ollama for intent parsing and explanations (`STUDYBRIDGE_LLM=1` is the same as `--llm`) |
 | `--today YYYY-MM-DD` | Start the sandbox clock on this date (09:00) for reproducible runs (the `STUDYBRIDGE_TODAY` variable does the same) |
 | `--profile path.json` | Use another sandbox profile |
 | `--audit path.jsonl` | Audit log location (default `var/audit.jsonl`) |
@@ -243,12 +219,6 @@ docker run --rm -p 127.0.0.1:8765:8765 studybridge
 
 Do not expose the web UI to the internet. It has no user authentication, because it is a
 single-user sandbox (see the known-risk list).
-
-**Hosted demo (Render, for judges):** the server answers only to `localhost` unless a host name is named on purpose, so
-that another website cannot use it (DNS rebinding). On Render, `RENDER_EXTERNAL_HOSTNAME` is set automatically and
-is allowed; on any other host, or with a custom domain, set `STUDYBRIDGE_ALLOWED_HOSTS` to the comma-separated host
-names. If the page shows `{"error": "unexpected host"}`, the host is not on the list. Because there are no logins, a
-public deployment lets anyone press every button: share the link only for the judging period.
 
 ## Example requests
 
